@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RTSP 視頻播放器 (使用 flv.js)</title>
+<script src="https://cdn.jsdelivr.net/npm/flv.js@1.5.0/dist/flv.min.js"></script>
+<style>
+  body, html {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: #fff;
+  }
+  #videoContainer {
+    max-width: 100%;
+    max-height: 100%;
+  }
+  #videoPlayer {
+    max-width: 100%;
+    max-height: 100vh;
+  }
+</style>
+</head>
+<body>
+<div id="videoContainer">
+  <video id="videoPlayer" controls></video>
+</div>
+
+<script>
+  if (flvjs.isSupported()) {
+    var videoElement = document.getElementById('videoPlayer');
+    var flvPlayer = flvjs.createPlayer({
+      type: 'flv',
+      url: 'rtsp://admin:dh123456@192.168.68.70:554/cam/realmonitor?channel=1&subtype=0' // 替換為您的 HTTP-FLV 流地址
+    });
+    flvPlayer.attachMediaElement(videoElement);
+    flvPlayer.load();
+    flvPlayer.play();
+  }
+</script>
+</body>
+</html>

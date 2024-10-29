@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WebSocket 视频播放器</title>
+<style>
+  body, html {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: #fff;
+  }
+  #videoContainer {
+    position: relative;
+    max-width: 100%;
+    max-height: 100%;
+  }
+  #videoCanvas {
+    max-width: 100%;
+    max-height: 100vh;
+    display: block;
+  }
+  #playPauseBtn {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 2;
+    width: 75px;
+    height: 75px;
+    background: black;
+    color: white;
+    text-align: center;
+    line-height: 75px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: none;
+  }
+</style>
+<script src="./jsmpeg.js"></script>
+</head>
+<body>
+<div id="videoContainer">
+  <canvas id="videoCanvas"></canvas>
+  <div id="playPauseBtn" onclick="togglePlay()">播放</div>
+</div>
+
+<script>
+var videoCanvas = document.getElementById('videoCanvas');
+var playPauseBtn = document.getElementById('playPauseBtn');
+var player;
+var isPlaying = true;
+
+function initPlayer() {
+  var url = 'ws://localhost:9999'; // 确保这个端口与您的WebSocket服务器端口一致
+  player = new JSMpeg.Player(url, {canvas: videoCanvas});
+}
+
+function togglePlay() {
+  if (isPlaying) {
+    player.pause();
+    playPauseBtn.textContent = '播放';
+    isPlaying = false;
+  } else {
+    player.play();
+    playPauseBtn.textContent = '暂停';
+    isPlaying = true;
+  }
+}
+
+videoCanvas.addEventListener('click', function() {
+  togglePlay();
+  playPauseBtn.style.display = isPlaying ? 'none' : 'block';
+});
+
+// 初始化播放器
+initPlayer();
+
+// 处理连接错误
+// player.on('error', function() {
+//   console.error('Stream connection error');
+//   playPauseBtn.style.display = 'block';
+//   playPauseBtn.textContent = '重新连接';
+//   isPlaying = false;
+// });
+</script>
+</body>
+</html>
