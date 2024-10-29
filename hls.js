@@ -10,7 +10,14 @@ const outputDir = path.join(__dirname, 'public');
 
 // RTSP 連結列表
 const rtspStreams = [
-  { name: 'camera1', url: 'rtsp://admin:dh123456@192.168.68.72:554/cam/realmonitor?channel=1&subtype=0' },
+  { name: 'camera1', url: 'rtsp://admin:djs123456@192.168.1.71:554/cam/realmonitor?channel=1&subtype=0' },
+  { name: 'camera2', url: 'rtsp://admin:djs123456@192.168.1.71:554/cam/realmonitor?channel=2&subtype=0' },
+  { name: 'camera3', url: 'rtsp://admin:djs123456@192.168.1.71:554/cam/realmonitor?channel=3&subtype=0' },
+  { name: 'camera4', url: 'rtsp://admin:djs123456@192.168.1.71:554/cam/realmonitor?channel=4&subtype=0' },
+  { name: 'camera5', url: 'rtsp://admin:djs123456@192.168.1.71:554/cam/realmonitor?channel=5&subtype=0' },
+  { name: 'camera6', url: 'rtsp://admin:djs123456@192.168.1.71:554/cam/realmonitor?channel=6&subtype=0' },
+  //　一個 ip 32　個 channel
+  // 往下添加其他 camera
 ];
 
 if (cluster.isMaster) {
