@@ -13,11 +13,15 @@ function startFFmpeg() {
     '-fflags', 'flush_packets',
     '-max_delay', '10',
     '-flags', '-global_header',
-    '-hls_time', '10',
-    '-hls_list_size', '6',
+    '-hls_time', '10',           // 每個片段最多10秒
+    '-hls_list_size', '5',       // 播放列表最多包含5個片段
+    '-hls_flags', 'delete_segments', // 刪除不在播放列表中的舊片段
     '-vcodec', 'libx264',
     '-acodec', 'aac',
     '-f', 'hls',
+
+    '-b:v', '500k',      // 設定視訊比特率為1000 kbps
+    '-s', '320x240',                 // 設定解析度為320x240
     outputFile
   ]);
 

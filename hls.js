@@ -8,16 +8,43 @@ const fs = require('fs');
 const port = 8001;
 const outputDir = path.join(__dirname, 'public');
 
+
+
 // RTSP 連結列表
 const rtspStreams = [
-  { name: 'camera1', url: 'rtsp://admin:djs123456@192.168.1.71:554/cam/realmonitor?channel=1&subtype=0' },
-  { name: 'camera2', url: 'rtsp://admin:djs123456@192.168.1.71:554/cam/realmonitor?channel=2&subtype=0' },
-  { name: 'camera3', url: 'rtsp://admin:djs123456@192.168.1.71:554/cam/realmonitor?channel=3&subtype=0' },
-  { name: 'camera4', url: 'rtsp://admin:djs123456@192.168.1.71:554/cam/realmonitor?channel=4&subtype=0' },
-  { name: 'camera5', url: 'rtsp://admin:djs123456@192.168.1.71:554/cam/realmonitor?channel=5&subtype=0' },
-  { name: 'camera6', url: 'rtsp://admin:djs123456@192.168.1.71:554/cam/realmonitor?channel=6&subtype=0' },
-  //　一個 ip 32　個 channel
-  // 往下添加其他 camera
+  // {name: 'camera001', url: 'rtsp://rtspstream:03530b2fa3f8859a9322f5638aa3232c@zephyr.rtsp.stream/pattern'},
+  { name: 'camera001', url: 'rtsp://admin:djs123456@192.168.1.71:554/cam/realmonitor?channel=20&subtype=0' },
+  { name: 'camera002', url: 'rtsp://admin:djs123456@192.168.1.71:554/cam/realmonitor?channel=3&subtype=0' },
+  { name: 'camera003', url: 'rtsp://admin:djs123456@192.168.1.71:554/cam/realmonitor?channel=16&subtype=0' },
+  { name: 'camera004', url: 'rtsp://admin:djs123456@192.168.1.71:554/cam/realmonitor?channel=8&subtype=0' },
+  { name: 'camera005', url: 'rtsp://admin:djs123456@192.168.1.71:554/cam/realmonitor?channel=11&subtype=0' },
+  { name: 'camera006', url: 'rtsp://admin:djs123456@192.168.1.71:554/cam/realmonitor?channel=14&subtype=0' },
+  { name: 'camera007', url: 'rtsp://admin:djs123456@192.168.1.71:554/cam/realmonitor?channel=13&subtype=0' },
+  { name: 'camera008', url: 'rtsp://admin:djs123456@192.168.1.71:554/cam/realmonitor?channel=9&subtype=0' },
+  { name: 'camera009', url: 'rtsp://admin:djs123456@192.168.1.71:554/cam/realmonitor?channel=15&subtype=0' },
+  { name: 'camera010', url: 'rtsp://admin:djs123456@192.168.1.71:554/cam/realmonitor?channel=22&subtype=0' },
+  { name: 'camera011', url: 'rtsp://admin:djs123456@192.168.1.71:554/cam/realmonitor?channel=5&subtype=0' },
+  { name: 'camera012', url: 'rtsp://admin:djs123456@192.168.1.71:554/cam/realmonitor?channel=1&subtype=0' },
+  { name: 'camera013', url: 'rtsp://admin:djs123456@192.168.1.71:554/cam/realmonitor?channel=12&subtype=0' },
+  { name: 'camera014', url: 'rtsp://admin:djs123456@192.168.1.71:554/cam/realmonitor?channel=21&subtype=0' },
+  { name: 'camera015', url: 'rtsp://admin:djs123456@192.168.1.71:554/cam/realmonitor?channel=19&subtype=0' },
+  { name: 'camera016', url: 'rtsp://admin:djs123456@192.168.1.71:554/cam/realmonitor?channel=17&subtype=0' },
+  { name: 'camera017', url: 'rtsp://admin:djs123456@192.168.1.71:554/cam/realmonitor?channel=2&subtype=0' },
+  { name: 'camera018', url: 'rtsp://admin:djs123456@192.168.1.71:554/cam/realmonitor?channel=18&subtype=0' },
+  { name: 'camera019', url: 'rtsp://admin:djs123456@192.168.1.71:554/cam/realmonitor?channel=6&subtype=0' },
+  { name: 'camera020', url: 'rtsp://admin:djs123456@192.168.1.71:554/cam/realmonitor?channel=4&subtype=0' },
+  { name: 'camera151', url: 'rtsp://admin:djs123456@192.168.1.71:554/cam/realmonitor?channel=7&subtype=0' },
+  { name: 'camera036', url: 'rtsp://admin:djs123456@192.168.1.71:554/cam/realmonitor?channel=10&subtype=0' },
+  { name: 'camera022', url: 'rtsp://admin:djs123456@192.168.1.71:554/cam/realmonitor?channel=30&subtype=0' },
+  { name: 'camera023', url: 'rtsp://admin:djs123456@192.168.1.71:554/cam/realmonitor?channel=31&subtype=0' },
+  { name: 'camera024', url: 'rtsp://admin:djs123456@192.168.1.71:554/cam/realmonitor?channel=29&subtype=0' },
+  { name: 'camera025', url: 'rtsp://admin:djs123456@192.168.1.71:554/cam/realmonitor?channel=28&subtype=0' },
+  { name: 'camera028', url: 'rtsp://admin:djs123456@192.168.1.71:554/cam/realmonitor?channel=26&subtype=0' },
+  { name: 'camera030', url: 'rtsp://admin:djs123456@192.168.1.71:554/cam/realmonitor?channel=24&subtype=0' },
+  { name: 'camera038', url: 'rtsp://admin:djs123456@192.168.1.71:554/cam/realmonitor?channel=32&subtype=0' },
+  { name: 'camera039', url: 'rtsp://admin:djs123456@192.168.1.71:554/cam/realmonitor?channel=23&subtype=0' },
+  { name: 'camera042', url: 'rtsp://admin:djs123456@192.168.1.71:554/cam/realmonitor?channel=27&subtype=0' },
+  { name: 'camera053', url: 'rtsp://admin:djs123456@192.168.1.71:554/cam/realmonitor?channel=25&subtype=0' }
 ];
 
 if (cluster.isMaster) {
