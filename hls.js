@@ -28,6 +28,7 @@ const ipE = '192.168.1.75';
 // 135
 // 重複
 // 97
+// urL: https://camera.sparkspaceapi.cc
 const rtspStreams = [
   // ipA (192.168.1.71) - 按channel排序
   { name: 'camera012', url: `rtsp://admin:djs123456@${ipA}:554/cam/realmonitor?channel=1&subtype=0` },
@@ -120,7 +121,7 @@ const rtspStreams = [
   { name: 'camera064', url: `rtsp://admin:djs123456@${ipC}:554/cam/realmonitor?channel=20&subtype=0` },
   { name: 'camera073', url: `rtsp://admin:djs123456@${ipC}:554/cam/realmonitor?channel=21&subtype=0` },
   { name: 'camera047', url: `rtsp://admin:djs123456@${ipC}:554/cam/realmonitor?channel=22&subtype=0` },
-  { name: 'camera097', url: `rtsp://admin:djs123456@${ipC}:554/cam/realmonitor?channel=23&subtype=0` },
+  { name: 'camera098', url: `rtsp://admin:djs123456@${ipC}:554/cam/realmonitor?channel=23&subtype=0` },
   { name: 'camera102', url: `rtsp://admin:djs123456@${ipC}:554/cam/realmonitor?channel=24&subtype=0` },
   { name: 'camera106', url: `rtsp://admin:djs123456@${ipC}:554/cam/realmonitor?channel=25&subtype=0` },
   { name: 'camera093', url: `rtsp://admin:djs123456@${ipC}:554/cam/realmonitor?channel=26&subtype=0` },
@@ -149,7 +150,7 @@ const rtspStreams = [
   { name: 'camera088', url: `rtsp://admin:djs123456@${ipD}:554/cam/realmonitor?channel=15&subtype=0` },
   { name: 'camera116', url: `rtsp://admin:djs123456@${ipD}:554/cam/realmonitor?channel=16&subtype=0` },
   { name: 'camera089', url: `rtsp://admin:djs123456@${ipD}:554/cam/realmonitor?channel=17&subtype=0` },
-  { name: 'camera098', url: `rtsp://admin:djs123456@${ipD}:554/cam/realmonitor?channel=18&subtype=0` },
+  { name: 'camera108', url: `rtsp://admin:djs123456@${ipD}:554/cam/realmonitor?channel=18&subtype=0` },
   { name: 'camera091', url: `rtsp://admin:djs123456@${ipD}:554/cam/realmonitor?channel=19&subtype=0` },
   { name: 'camera111', url: `rtsp://admin:djs123456@${ipD}:554/cam/realmonitor?channel=20&
   subtype=0` },
@@ -180,6 +181,7 @@ const rtspStreams = [
   { name: 'camera137', url: `rtsp://admin:djs123456@${ipE}:554/cam/realmonitor?channel=10&subtype=0` },
   { name: 'camera138', url: `rtsp://admin:djs123456@${ipE}:554/cam/realmonitor?channel=11&subtype=0` },
   { name: 'camera139', url: `rtsp://admin:djs123456@${ipE}:554/cam/realmonitor?channel=12&subtype=0` },
+  { name: 'camera135', url: `rtsp://admin:djs123456@${ipE}:554/cam/realmonitor?channel=13&subtype=0` },
   { name: 'camera130', url: `rtsp://admin:djs123456@${ipE}:554/cam/realmonitor?channel=14&subtype=0` },
   { name: 'camera118', url: `rtsp://admin:djs123456@${ipE}:554/cam/realmonitor?channel=15&subtype=0` },
   { name: 'camera126', url: `rtsp://admin:djs123456@${ipE}:554/cam/realmonitor?channel=16&subtype=0` },
@@ -188,41 +190,78 @@ const rtspStreams = [
   { name: 'camera119', url: `rtsp://admin:djs123456@${ipE}:554/cam/realmonitor?channel=19&subtype=0` },
   { name: 'camera134', url: `rtsp://admin:djs123456@${ipE}:554/cam/realmonitor?channel=20&subtype=0` },
   { name: 'camera122', url: `rtsp://admin:djs123456@${ipE}:554/cam/realmonitor?channel=21&subtype=0` },
+  { name: 'camera128', url: `rtsp://admin:djs123456@${ipE}:554/cam/realmonitor?channel=22&subtype=0` },
+  { name: 'camera56', url: `rtsp://admin:djs123456@${ipE}:554/cam/realmonitor?channel=23&subtype=0` },
 ];
+
+// 將 rtspStreams 按 IP 分組
+const streamGroups = {
+  ipA: rtspStreams.filter(stream => stream.url.includes(ipA)),
+  ipB: rtspStreams.filter(stream => stream.url.includes(ipB)),
+  ipC: rtspStreams.filter(stream => stream.url.includes(ipC)),
+  ipD: rtspStreams.filter(stream => stream.url.includes(ipD)),
+  ipE: rtspStreams.filter(stream => stream.url.includes(ipE))
+};
+
 if (cluster.isMaster) {
   console.log(`主進程 ${process.pid} 正在運行`);
 
-  // 確保輸出目錄存在
   if (!fs.existsSync(outputDir)) {
     fs.mkdirSync(outputDir, { recursive: true });
   }
 
-  // 啟動 Worker Threads 處理 RTSP 流
-  rtspStreams.forEach(stream => {
-    const worker = new Worker('./ffmpeg-worker.js', {
-      workerData: {
-        streamName: stream.name,
-        streamUrl: stream.url,
-        outputDir: outputDir
-      }
-    });
+  let currentWorkers = new Set();
+  let currentGroupIndex = 0;
+  const groups = Object.values(streamGroups);
 
-    worker.on('message', (message) => {
-      console.log(`Worker ${stream.name}: ${message}`);
-    });
+  // 啟動特定 IP 組的所有攝影機
+  function startGroupStreams(groupStreams) {
+    // 清理現有的 workers
+    for (let worker of currentWorkers) {
+      worker.terminate();
+    }
+    currentWorkers.clear();
 
-    worker.on('error', (error) => {
-      console.error(`Worker ${stream.name} error:`, error);
-    });
+    // 啟動新的 workers
+    groupStreams.forEach(stream => {
+      const worker = new Worker('./ffmpeg-worker.js', {
+        workerData: {
+          streamName: stream.name,
+          streamUrl: stream.url,
+          outputDir: outputDir
+        }
+      });
 
-    worker.on('exit', (code) => {
-      if (code !== 0) {
-        console.error(`Worker ${stream.name} stopped with exit code ${code}`);
-      }
-    });
-  });
+      currentWorkers.add(worker);
 
-  // 為每個 CPU 核心創建一個工作進程
+      worker.on('message', (message) => {
+        console.log(`Worker ${stream.name}: ${message}`);
+      });
+
+      worker.on('error', (error) => {
+        console.error(`Worker ${stream.name} error:`, error);
+      });
+
+      worker.on('exit', (code) => {
+        if (code !== 0) {
+          console.error(`Worker ${stream.name} stopped with exit code ${code}`);
+        }
+        currentWorkers.delete(worker);
+      });
+    });
+  }
+
+  // 每分鐘切換一次 IP 組
+  setInterval(() => {
+    console.log(`切換到下一組 IP 攝影機`);
+    currentGroupIndex = (currentGroupIndex + 1) % groups.length;
+    startGroupStreams(groups[currentGroupIndex]);
+  }, 60000); // 60000 毫秒 = 1 分鐘
+
+  // 初始啟動第一組
+  startGroupStreams(groups[currentGroupIndex]);
+
+  // 為每個 CPU 核心創建工作進程
   for (let i = 0; i < numCPUs; i++) {
     cluster.fork();
   }
