@@ -1,5 +1,5 @@
 {
-  "total": 147,
+  "total": 155,
   "pages": 1,
   "pageNo": 1,
   "pageSize": 1000,
@@ -353,6 +353,42 @@
       "startDate": 0
     },
     {
+      "lockAlias": "M045",
+      "endDate": 0,
+      "keyId": 188455000,
+      "lockMac": "4C:CD:55:18:01:9D",
+      "hasGateway": 1,
+      "lockName": "S534_9d0118",
+      "keyName": "ccc50236ccc@gmail.com",
+      "lockId": 18529814,
+      "electricQuantity": 100,
+      "startDate": 0
+    },
+    {
+      "lockAlias": "M046",
+      "endDate": 0,
+      "keyId": 188455066,
+      "lockMac": "6F:F9:64:6B:BA:F9",
+      "hasGateway": 1,
+      "lockName": "S534_f9ba6b",
+      "keyName": "ccc50236ccc@gmail.com",
+      "lockId": 18529832,
+      "electricQuantity": 100,
+      "startDate": 0
+    },
+    {
+      "lockAlias": "M047",
+      "endDate": 0,
+      "keyId": 188455372,
+      "lockMac": "CA:7B:B0:16:5A:B2",
+      "hasGateway": 1,
+      "lockName": "S534_b25a16",
+      "keyName": "ccc50236ccc@gmail.com",
+      "lockId": 18529968,
+      "electricQuantity": 100,
+      "startDate": 0
+    },
+    {
       "lockAlias": "M048",
       "endDate": 0,
       "keyId": 188445858,
@@ -361,6 +397,54 @@
       "lockName": "S534_a0eb7c",
       "keyName": "ccc50236ccc@gmail.com",
       "lockId": 18526964,
+      "electricQuantity": 100,
+      "startDate": 0
+    },
+    {
+      "lockAlias": "M049",
+      "endDate": 0,
+      "keyId": 188455472,
+      "lockMac": "56:1B:23:CF:FE:82",
+      "hasGateway": 1,
+      "lockName": "S534_82fecf",
+      "keyName": "ccc50236ccc@gmail.com",
+      "lockId": 18530008,
+      "electricQuantity": 100,
+      "startDate": 0
+    },
+    {
+      "lockAlias": "M050",
+      "endDate": 0,
+      "keyId": 188455624,
+      "lockMac": "B3:13:25:B4:3E:80",
+      "hasGateway": 1,
+      "lockName": "S534_803eb4",
+      "keyName": "ccc50236ccc@gmail.com",
+      "lockId": 18530050,
+      "electricQuantity": 100,
+      "startDate": 0
+    },
+    {
+      "lockAlias": "M051",
+      "endDate": 0,
+      "keyId": 188455776,
+      "lockMac": "9F:61:4B:2C:DC:C3",
+      "hasGateway": 1,
+      "lockName": "S534_c3dc2c",
+      "keyName": "ccc50236ccc@gmail.com",
+      "lockId": 18530112,
+      "electricQuantity": 100,
+      "startDate": 0
+    },
+    {
+      "lockAlias": "M052",
+      "endDate": 0,
+      "keyId": 188455928,
+      "lockMac": "1E:23:C5:5F:C9:C4",
+      "hasGateway": 1,
+      "lockName": "S534_c4c95f",
+      "keyName": "ccc50236ccc@gmail.com",
+      "lockId": 18530150,
       "electricQuantity": 100,
       "startDate": 0
     },
@@ -529,7 +613,7 @@
       "lockName": "S534_06e307",
       "keyName": "ccc50236ccc@gmail.com",
       "lockId": 18461900,
-      "electricQuantity": 50,
+      "electricQuantity": 45,
       "startDate": 0
     },
     {
@@ -585,7 +669,7 @@
       "endDate": 0,
       "keyId": 188006016,
       "lockMac": "5A:3F:61:61:88:38",
-      "hasGateway": 1,
+      "hasGateway": 0,
       "lockName": "S534_388861",
       "keyName": "ccc50236ccc@gmail.com",
       "lockId": 18462242,
@@ -657,11 +741,11 @@
       "endDate": 0,
       "keyId": 188008108,
       "lockMac": "43:6A:50:0B:86:65",
-      "hasGateway": 0,
+      "hasGateway": 1,
       "lockName": "S534_65860b",
       "keyName": "ccc50236ccc@gmail.com",
       "lockId": 18462440,
-      "electricQuantity": 45,
+      "electricQuantity": 40,
       "startDate": 0
     },
     {
@@ -681,11 +765,11 @@
       "endDate": 0,
       "keyId": 188008364,
       "lockMac": "FC:4E:A5:9E:C3:BC",
-      "hasGateway": 0,
+      "hasGateway": 1,
       "lockName": "S534_bcc39e",
       "keyName": "ccc50236ccc@gmail.com",
       "lockId": 18462484,
-      "electricQuantity": 45,
+      "electricQuantity": 40,
       "startDate": 0
     },
     {
@@ -709,7 +793,7 @@
       "lockName": "S534_a839ef",
       "keyName": "ccc50236ccc@gmail.com",
       "lockId": 18462640,
-      "electricQuantity": 45,
+      "electricQuantity": 40,
       "startDate": 0
     },
     {
@@ -1585,6 +1669,18 @@
       "lockName": "S534_48a99e",
       "keyName": "ccc50236ccc@gmail.com",
       "lockId": 18460114,
+      "electricQuantity": 100,
+      "startDate": 0
+    },
+    {
+      "lockAlias": "XL044",
+      "endDate": 0,
+      "keyId": 188454936,
+      "lockMac": "8B:A0:91:82:B1:DB",
+      "hasGateway": 1,
+      "lockName": "S534_dbb182",
+      "keyName": "ccc50236ccc@gmail.com",
+      "lockId": 18529788,
       "electricQuantity": 100,
       "startDate": 0
     },

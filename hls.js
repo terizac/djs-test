@@ -194,98 +194,97 @@ const rtspStreams = [
   { name: 'camera56', url: `rtsp://admin:djs123456@${ipE}:554/cam/realmonitor?channel=23&subtype=0` },
 ];
 
-// 將 rtspStreams 按 IP 分組
-const streamGroups = {
-  ipA: rtspStreams.filter(stream => stream.url.includes(ipA)),
-  ipB: rtspStreams.filter(stream => stream.url.includes(ipB)),
-  ipC: rtspStreams.filter(stream => stream.url.includes(ipC)),
-  ipD: rtspStreams.filter(stream => stream.url.includes(ipD)),
-  ipE: rtspStreams.filter(stream => stream.url.includes(ipE))
-};
+// 將 rtspStreams 每16個分成一組
+const chunkSize = 16;
+const streamGroups = [];
+for (let i = 0; i < rtspStreams.length; i += chunkSize) {
+    streamGroups.push(rtspStreams.slice(i, i + chunkSize));
+}
 
 if (cluster.isMaster) {
-  console.log(`主進程 ${process.pid} 正在運行`);
+    console.log(`主進程 ${process.pid} 正在運行`);
+    console.log(`總共分成 ${streamGroups.length} 組，每組 ${chunkSize} 個攝影機`);
 
-  if (!fs.existsSync(outputDir)) {
-    fs.mkdirSync(outputDir, { recursive: true });
-  }
-
-  let currentWorkers = new Set();
-  let currentGroupIndex = 0;
-  const groups = Object.values(streamGroups);
-
-  // 啟動特定 IP 組的所有攝影機
-  function startGroupStreams(groupStreams) {
-    // 清理現有的 workers
-    for (let worker of currentWorkers) {
-      worker.terminate();
+    if (!fs.existsSync(outputDir)) {
+        fs.mkdirSync(outputDir, { recursive: true });
     }
-    currentWorkers.clear();
 
-    // 啟動新的 workers
-    groupStreams.forEach(stream => {
-      const worker = new Worker('./ffmpeg-worker.js', {
-        workerData: {
-          streamName: stream.name,
-          streamUrl: stream.url,
-          outputDir: outputDir
+    let currentWorkers = new Set();
+    let currentGroupIndex = 0;
+    const groups = streamGroups;
+
+    // 啟動特定 IP 組的所有攝影機
+    function startGroupStreams(groupStreams) {
+        // 清理現有的 workers
+        for (let worker of currentWorkers) {
+            worker.terminate();
         }
-      });
+        currentWorkers.clear();
 
-      currentWorkers.add(worker);
+        // 啟動新的 workers
+        groupStreams.forEach(stream => {
+            const worker = new Worker('./ffmpeg-worker.js', {
+                workerData: {
+                    streamName: stream.name,
+                    streamUrl: stream.url,
+                    outputDir: outputDir
+                }
+            });
 
-      worker.on('message', (message) => {
-        console.log(`Worker ${stream.name}: ${message}`);
-      });
+            currentWorkers.add(worker);
 
-      worker.on('error', (error) => {
-        console.error(`Worker ${stream.name} error:`, error);
-      });
+            worker.on('message', (message) => {
+                console.log(`Worker ${stream.name}: ${message}`);
+            });
 
-      worker.on('exit', (code) => {
-        if (code !== 0) {
-          console.error(`Worker ${stream.name} stopped with exit code ${code}`);
-        }
-        currentWorkers.delete(worker);
-      });
-    });
-  }
+            worker.on('error', (error) => {
+                console.error(`Worker ${stream.name} error:`, error);
+            });
 
-  // 每分鐘切換一次 IP 組
-  setInterval(() => {
-    console.log(`切換到下一組 IP 攝影機`);
-    currentGroupIndex = (currentGroupIndex + 1) % groups.length;
+            worker.on('exit', (code) => {
+                if (code !== 0) {
+                    console.error(`Worker ${stream.name} stopped with exit code ${code}`);
+                }
+                currentWorkers.delete(worker);
+            });
+        });
+    }
+
+    // 每分鐘切換一次 IP 組
+    setInterval(() => {
+        console.log(`切換到下一組 IP 攝影機`);
+        currentGroupIndex = (currentGroupIndex + 1) % groups.length;
+        startGroupStreams(groups[currentGroupIndex]);
+    }, 60000); // 60000 毫秒 = 1 分鐘
+
+    // 初始啟動第一組
     startGroupStreams(groups[currentGroupIndex]);
-  }, 60000); // 60000 毫秒 = 1 分鐘
 
-  // 初始啟動第一組
-  startGroupStreams(groups[currentGroupIndex]);
+    // 為每個 CPU 核心創建工作進程
+    for (let i = 0; i < numCPUs; i++) {
+        cluster.fork();
+    }
 
-  // 為每個 CPU 核心創建工作進程
-  for (let i = 0; i < numCPUs; i++) {
-    cluster.fork();
-  }
-
-  cluster.on('exit', (worker, code, signal) => {
-    console.log(`工作進程 ${worker.process.pid} 已退出`);
-  });
+    cluster.on('exit', (worker, code, signal) => {
+        console.log(`工作進程 ${worker.process.pid} 已退出`);
+    });
 } else {
-  // 工作進程共享同一個 TCP 連接
-  const app = express();
+    // 工作進程共享同一個 TCP 連接
+    const app = express();
 
-  // 設置靜態文件服務
-  app.use(express.static(outputDir));
+    // 設置靜態文件服務
+    app.use(express.static(outputDir));
 
-  // API 路由來獲取所有流的列表
-  app.get('/streams', (req, res) => {
-    const streamList = rtspStreams.map(stream => ({
-      name: stream.name,
-      url: `/${stream.name}.m3u8`
-    }));
-    res.json(streamList);
-  });
+    // API 路由來獲取所有流的列表
+    app.get('/streams', (req, res) => {
+        const streamList = rtspStreams.map(stream => ({
+            name: stream.name,
+            url: `/${stream.name}.m3u8`
+        }));
+        res.json(streamList);
+    });
 
-  app.listen(port, () => {
-    console.log(`工作進程 ${process.pid} 正在監聽端口 ${port}`);
-  });
+    app.listen(port, () => {
+        console.log(`工作進程 ${process.pid} 正在監聽端口 ${port}`);
+    });
 }
