@@ -10,18 +10,24 @@ function startFFmpeg() {
 
   const ffmpeg = spawn('ffmpeg', [
     '-i', streamUrl,
-    '-fflags', 'flush_packets',
-    '-max_delay', '10',
-    '-flags', '-global_header',
-    '-hls_time', '10',           // 每個片段最多10秒
-    '-hls_list_size', '5',       // 播放列表最多包含5個片段
-    '-hls_flags', 'delete_segments', // 刪除不在播放列表中的舊片段
+    '-fflags', 'nobuffer',
+    '-flags', 'low_delay',
+    '-max_delay', '5000000',
+    '-rtsp_transport', 'tcp',
+    '-stimeout', '5000000',
+    
+    '-hls_time', '2',
+    '-hls_list_size', '5',
+    '-hls_flags', 'delete_segments+omit_endlist',
+    
     '-vcodec', 'libx264',
+    '-preset', 'ultrafast',
+    '-tune', 'zerolatency',
     '-acodec', 'aac',
+    
+    '-b:v', '500k',
+    '-s', '320x240',
     '-f', 'hls',
-
-    '-b:v', '500k',      // 設定視訊比特率為1000 kbps
-    '-s', '320x240',                 // 設定解析度為320x240
     outputFile
   ]);
 
