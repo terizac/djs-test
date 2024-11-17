@@ -18,7 +18,7 @@ function startFFmpeg() {
     
     '-hls_time', '2',
     '-hls_list_size', '5',
-    '-hls_flags', 'delete_segments+omit_endlist',
+    '-hls_flags', 'delete_segments',
     
     '-vcodec', 'libx264',
     '-preset', 'ultrafast',
