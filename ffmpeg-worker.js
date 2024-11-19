@@ -15,7 +15,6 @@ function startFFmpeg() {
         '-flags', 'low_delay',
         '-max_delay', '5000000',
         '-rtsp_transport', 'tcp',
-        '-stimeout', '5000000',
         '-hls_time', '2',
         '-hls_list_size', '3',
         '-hls_flags', 'delete_segments',
