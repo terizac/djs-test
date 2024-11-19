@@ -241,19 +241,27 @@ if (cluster.isMaster) {
     // 啟動特定組的串流
     function startGroupStreams(groupStreams) {
         // 清理現有的 workers
-        for (let worker of currentWorkers) {
-            // 先發送停止信號給 worker
-            worker.postMessage('stop');
-            
-            // 等待一小段時間確保 ffmpeg 進程被終止
-            setTimeout(() => {
-                worker.terminate();
-            }, 1000);
-        }
-        currentWorkers.clear();
+        const cleanupPromises = Array.from(currentWorkers).map(worker => {
+            return new Promise((resolve) => {
+                worker.on('exit', () => {
+                    resolve();
+                });
+                
+                worker.postMessage('stop');
+                
+                // 設置超時，以防 worker 沒有正確退出
+                setTimeout(() => {
+                    worker.terminate();
+                    resolve();
+                }, 5000);
+            });
+        });
 
-        // 等待短暫時間後啟動新的 workers
-        setTimeout(() => {
+        // 等待所有 worker 清理完成後再啟動新的
+        Promise.all(cleanupPromises).then(() => {
+            currentWorkers.clear();
+            console.log('所有舊進程已清理完成，開始啟動新進程');
+
             groupStreams.forEach(stream => {
                 const worker = new Worker('./ffmpeg-worker.js', {
                     workerData: {
@@ -271,16 +279,15 @@ if (cluster.isMaster) {
 
                 worker.on('error', (error) => {
                     console.error(`Worker ${stream.name} error:`, error);
+                    currentWorkers.delete(worker);
                 });
 
                 worker.on('exit', (code) => {
-                    if (code !== 0) {
-                        console.error(`Worker ${stream.name} stopped with exit code ${code}`);
-                    }
+                    console.log(`Worker ${stream.name} exited with code ${code}`);
                     currentWorkers.delete(worker);
                 });
             });
-        }, 2000);  // 等待 2 秒確保舊進程完全終止
+        });
     }
 
     // 從 ID 中提取數字
