@@ -4,6 +4,7 @@ const { Worker } = require('worker_threads');
 const express = require('express');
 const path = require('path');
 const fs = require('fs');
+const axios = require('axios');
 
 const port = 8001;
 const outputDir = path.join(__dirname, 'public');
@@ -194,71 +195,161 @@ const rtspStreams = [
   { name: 'camera56', url: `rtsp://admin:djs123456@${ipE}:554/cam/realmonitor?channel=23&subtype=0` },
 ];
 
-// 將 rtspStreams 每16個分成一組
-const chunkSize = 16;
-const streamGroups = [];
-for (let i = 0; i < rtspStreams.length; i += chunkSize) {
-    streamGroups.push(rtspStreams.slice(i, i + chunkSize));
+// 從 ID 中提取數字
+function extractNumber(id) {
+    // 移除所有英文字母，只保留數字
+    return id.replace(/[A-Za-z]/g, '');
+}
+
+// 根據 cameraId 篩選串流
+function filterStreamsByActiveCameras(activeCameraIds) {
+    // 先將所有 activeCameraIds 轉換為純數字
+    const activeNumbers = activeCameraIds.map(id => extractNumber(id));
+    console.log('轉換後的櫃位編號:', activeNumbers);
+
+    return rtspStreams.filter(stream => {
+        // 從 camera001 格式中提取數字
+        const cameraNumber = stream.name.replace('camera', '');
+        const isActive = activeNumbers.includes(cameraNumber);
+        
+        console.log(`比對攝影機 ${stream.name} (${cameraNumber}) 是否在使用中: ${isActive}`);
+        return isActive;
+    });
+}
+
+// 獲取租用中的櫃位
+async function getRentingCabinets() {
+    try {
+        const response = await axios.get('https://storehouse-backend.vercel.app/api/admin/cabinets?limit=1000');
+        const rentingCabinets = response.data.data.filter(cabinet => cabinet.status === 'renting');
+        const cabinetIds = rentingCabinets.map(cabinet => cabinet.cabinet_number);
+        console.log('租用中的櫃位:', cabinetIds);
+        return cabinetIds;
+    } catch (error) {
+        console.error('獲取櫃位資訊失敗:', error);
+        return [];
+    }
 }
 
 if (cluster.isMaster) {
     console.log(`主進程 ${process.pid} 正在運行`);
-    console.log(`總共分成 ${streamGroups.length} 組，每組 ${chunkSize} 個攝影機`);
-
-    if (!fs.existsSync(outputDir)) {
-        fs.mkdirSync(outputDir, { recursive: true });
-    }
 
     let currentWorkers = new Set();
     let currentGroupIndex = 0;
-    const groups = streamGroups;
+    let streamGroups = [];
 
-    // 啟動特定 IP 組的所有攝影機
+    // 啟動特定組的串流
     function startGroupStreams(groupStreams) {
         // 清理現有的 workers
         for (let worker of currentWorkers) {
-            worker.terminate();
+            // 先發送停止信號給 worker
+            worker.postMessage('stop');
+            
+            // 等待一小段時間確保 ffmpeg 進程被終止
+            setTimeout(() => {
+                worker.terminate();
+            }, 1000);
         }
         currentWorkers.clear();
 
-        // 啟動新的 workers
-        groupStreams.forEach(stream => {
-            const worker = new Worker('./ffmpeg-worker.js', {
-                workerData: {
-                    streamName: stream.name,
-                    streamUrl: stream.url,
-                    outputDir: outputDir
-                }
-            });
+        // 等待短暫時間後啟動新的 workers
+        setTimeout(() => {
+            groupStreams.forEach(stream => {
+                const worker = new Worker('./ffmpeg-worker.js', {
+                    workerData: {
+                        streamName: stream.name,
+                        streamUrl: stream.url,
+                        outputDir: outputDir
+                    }
+                });
 
-            currentWorkers.add(worker);
+                currentWorkers.add(worker);
 
-            worker.on('message', (message) => {
-                console.log(`Worker ${stream.name}: ${message}`);
-            });
+                worker.on('message', (message) => {
+                    console.log(`Worker ${stream.name}: ${message}`);
+                });
 
-            worker.on('error', (error) => {
-                console.error(`Worker ${stream.name} error:`, error);
-            });
+                worker.on('error', (error) => {
+                    console.error(`Worker ${stream.name} error:`, error);
+                });
 
-            worker.on('exit', (code) => {
-                if (code !== 0) {
-                    console.error(`Worker ${stream.name} stopped with exit code ${code}`);
-                }
-                currentWorkers.delete(worker);
+                worker.on('exit', (code) => {
+                    if (code !== 0) {
+                        console.error(`Worker ${stream.name} stopped with exit code ${code}`);
+                    }
+                    currentWorkers.delete(worker);
+                });
             });
+        }, 2000);  // 等待 2 秒確保舊進程完全終止
+    }
+
+    // 從 ID 中提取數字
+    function extractNumber(id) {
+        return id.replace(/[A-Za-z]/g, '');
+    }
+
+    // 根據 cameraId 篩選串流
+    function filterStreamsByActiveCameras(activeCameraIds) {
+        const activeNumbers = activeCameraIds.map(id => extractNumber(id));
+        console.log('轉換後的櫃位編號:', activeNumbers);
+
+        return rtspStreams.filter(stream => {
+            // 從 camera001 格式中提取數字
+            const cameraNumber = stream.name.replace('camera', '');
+            const isActive = activeNumbers.includes(cameraNumber);
+            
+            console.log(`比對攝影機 ${stream.name} (${cameraNumber}) 是否在使用中: ${isActive}`);
+            return isActive;
         });
     }
 
-    // 每分鐘切換一次 IP 組
-    setInterval(() => {
-        console.log(`切換到下一組 IP 攝影機`);
-        currentGroupIndex = (currentGroupIndex + 1) % groups.length;
-        startGroupStreams(groups[currentGroupIndex]);
-    }, 60000); // 60000 毫秒 = 1 分鐘
+    // 每16個分組
+    function groupStreams(streams) {
+        const groups = [];
+        for (let i = 0; i < streams.length; i += 16) {
+            groups.push(streams.slice(i, i + 16));
+        }
+        return groups;
+    }
 
-    // 初始啟動第一組
-    startGroupStreams(groups[currentGroupIndex]);
+    async function updateActiveStreams() {
+        try {
+            // 獲取租用中的櫃位攝影機
+            const activeCameraIds = await getRentingCabinets();
+            console.log('租用中的攝影機:', activeCameraIds);
+
+            // 篩選出需要開啟的串流
+            const activeStreams = filterStreamsByActiveCameras(activeCameraIds);
+            console.log(`需要開啟 ${activeStreams.length} 個攝影機串流`);
+
+            // 將串流分組
+            const groups = groupStreams(activeStreams);
+            console.log(`分成 ${groups.length} 組，每組最多16個攝影機`);
+
+            return groups;
+        } catch (error) {
+            console.error('更新串流失敗:', error);
+            return [];
+        }
+    }
+
+    // 每分鐘更新串流狀態
+    setInterval(async () => {
+        streamGroups = await updateActiveStreams();
+        if (streamGroups.length > 0) {
+            console.log('切換到下一組攝影機');
+            currentGroupIndex = (currentGroupIndex + 1) % streamGroups.length;
+            startGroupStreams(streamGroups[currentGroupIndex]);
+        }
+    }, 60000);
+
+    // 初始化
+    (async () => {
+        streamGroups = await updateActiveStreams();
+        if (streamGroups.length > 0) {
+            startGroupStreams(streamGroups[currentGroupIndex]);
+        }
+    })();
 
     // 為每個 CPU 核心創建工作進程
     for (let i = 0; i < numCPUs; i++) {
