@@ -233,7 +233,22 @@ async function getRentingCabinets() {
 
 if (cluster.isMaster) {
     console.log(`主進程 ${process.pid} 正在運行`);
+    
+    // 確保輸出目錄存在
+    if (!fs.existsSync(outputDir)) {
+        fs.mkdirSync(outputDir, { recursive: true });
+        console.log(`創建輸出目錄: ${outputDir}`);
+    }
 
+    // 確保目錄有寫入權限
+    try {
+        fs.accessSync(outputDir, fs.constants.W_OK);
+        console.log(`輸出目錄 ${outputDir} 具有寫入權限`);
+    } catch (err) {
+        console.error(`輸出目錄 ${outputDir} 沒有寫入權限:`, err);
+        process.exit(1);
+    }
+    
     let currentWorkers = new Set();
     let currentGroupIndex = 0;
     let streamGroups = [];
