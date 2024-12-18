@@ -231,6 +231,17 @@ async function getRentingCabinets() {
     }
 }
 
+// 在啟動 worker 前先檢查 RTSP 串流是否可用
+async function checkRTSPStream(url) {
+    try {
+        const response = await axios.get(url, { timeout: 5000 });
+        return true;
+    } catch (error) {
+        console.error(`RTSP 串流檢查失敗: ${url}`, error.message);
+        return false;
+    }
+}
+
 if (cluster.isMaster) {
     console.log(`主進程 ${process.pid} 正在運行`);
     
@@ -273,35 +284,60 @@ if (cluster.isMaster) {
         });
 
         // 等待所有 worker 清理完成後再啟動新的
-        Promise.all(cleanupPromises).then(() => {
+        Promise.all(cleanupPromises).then(async () => {
             currentWorkers.clear();
             console.log('所有舊進程已清理完成，開始啟動新進程');
 
-            groupStreams.forEach(stream => {
-                const worker = new Worker('./ffmpeg-worker.js', {
-                    workerData: {
-                        streamName: stream.name,
-                        streamUrl: stream.url,
-                        outputDir: outputDir
+            for (const stream of groupStreams) {
+                try {
+                    const isStreamAvailable = await checkRTSPStream(stream.url);
+                    if (!isStreamAvailable) {
+                        console.error(`跳過不可用的串流: ${stream.name}`);
+                        continue;
                     }
-                });
+                    
+                    const startWorker = (retries = 3) => {
+                        const worker = new Worker('./ffmpeg-worker.js', {
+                            workerData: {
+                                streamName: stream.name,
+                                streamUrl: stream.url,
+                                outputDir: outputDir
+                            }
+                        });
 
-                currentWorkers.add(worker);
+                        currentWorkers.add(worker);
 
-                worker.on('message', (message) => {
-                    console.log(`Worker ${stream.name}: ${message}`);
-                });
+                        worker.on('error', (error) => {
+                            console.error(`Worker ${stream.name} 發生錯誤:`, error);
+                            currentWorkers.delete(worker);
+                            
+                            if (retries > 0) {
+                                console.log(`嘗試重新啟動 Worker ${stream.name}，剩餘重試次數: ${retries-1}`);
+                                setTimeout(() => startWorker(retries - 1), 5000);
+                            }
+                        });
 
-                worker.on('error', (error) => {
-                    console.error(`Worker ${stream.name} error:`, error);
-                    currentWorkers.delete(worker);
-                });
+                        worker.on('exit', (code) => {
+                            if (code !== 0) {
+                                console.error(`Worker ${stream.name} 異常退出，退出碼: ${code}`);
+                                currentWorkers.delete(worker);
+                                
+                                if (retries > 0) {
+                                    console.log(`嘗試重新啟動 Worker ${stream.name}，剩餘重試次數: ${retries-1}`);
+                                    setTimeout(() => startWorker(retries - 1), 5000);
+                                }
+                            } else {
+                                console.log(`Worker ${stream.name} 正常退出`);
+                                currentWorkers.delete(worker);
+                            }
+                        });
+                    };
 
-                worker.on('exit', (code) => {
-                    console.log(`Worker ${stream.name} exited with code ${code}`);
-                    currentWorkers.delete(worker);
-                });
-            });
+                    startWorker();
+                } catch (error) {
+                    console.error(`檢查串流時發生錯誤: ${stream.name}`, error);
+                }
+            }
         });
     }
 
@@ -340,7 +376,7 @@ if (cluster.isMaster) {
             const activeCameraIds = await getRentingCabinets();
             console.log('租用中的攝影機:', activeCameraIds);
 
-            // 篩選出需要開啟的串流
+            // 篩選出���要開啟的串流
             const activeStreams = filterStreamsByActiveCameras(activeCameraIds);
             console.log(`需要開啟 ${activeStreams.length} 個攝影機串流`);
 
