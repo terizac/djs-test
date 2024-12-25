@@ -5,6 +5,7 @@ const express = require('express');
 const path = require('path');
 const fs = require('fs');
 const axios = require('axios');
+const ffmpeg = require('fluent-ffmpeg');
 
 const port = 8001;
 const outputDir = path.join(__dirname, 'public');
@@ -234,7 +235,7 @@ async function getRentingCabinets() {
 if (cluster.isMaster) {
     console.log(`主進程 ${process.pid} 正在運行`);
     
-    // 確保輸出目錄存在
+    // 確保輸出目錄���在
     if (!fs.existsSync(outputDir)) {
         fs.mkdirSync(outputDir, { recursive: true });
         console.log(`創建輸出目錄: ${outputDir}`);
@@ -313,7 +314,7 @@ if (cluster.isMaster) {
     // 根據 cameraId 篩選串流
     function filterStreamsByActiveCameras(activeCameraIds) {
         const activeNumbers = activeCameraIds.map(id => extractNumber(id));
-        console.log('轉換後的櫃位編號:', activeNumbers);
+        console.log('���換後的櫃位編號:', activeNumbers);
 
         return rtspStreams.filter(stream => {
             // 從 camera001 格式中提取數字
@@ -395,6 +396,47 @@ if (cluster.isMaster) {
             url: `/${stream.name}.m3u8`
         }));
         res.json(streamList);
+    });
+
+    // 添加截圖功能的路由
+    app.get('/screenshot', async (req, res) => {
+        const { url } = req.query;
+        
+        if (!url) {
+            return res.status(400).json({ error: '需要提供串流 URL' });
+        }
+
+        try {
+            // 創建臨時文件路徑
+            const tempFilePath = path.join(outputDir, `temp_${Date.now()}.jpg`);
+
+            // 使用 ffmpeg 進行截圖
+            await new Promise((resolve, reject) => {
+                ffmpeg(url)
+                    .screenshots({
+                        timestamps: ['00:00:00.000'],
+                        filename: path.basename(tempFilePath),
+                        folder: path.dirname(tempFilePath),
+                        size: '1280x720'
+                    })
+                    .on('end', () => resolve())
+                    .on('error', (err) => reject(err));
+            });
+
+            // 讀取截圖文件
+            const screenshot = await fs.promises.readFile(tempFilePath);
+
+            // 刪除臨時文件
+            await fs.promises.unlink(tempFilePath);
+
+            // 設置響應頭並返回圖片
+            res.set('Content-Type', 'image/jpeg');
+            res.send(screenshot);
+
+        } catch (error) {
+            console.error('截圖失敗:', error);
+            res.status(500).json({ error: '截圖失敗', details: error.message });
+        }
     });
 
     app.listen(port, () => {
