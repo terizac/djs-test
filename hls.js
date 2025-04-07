@@ -290,7 +290,7 @@ if (cluster.isMaster) {
                 currentWorkers.add(worker);
 
                 worker.on('message', (message) => {
-                    console.log(`Worker ${stream.name}: ${message}`);
+                    // console.log(`Worker ${stream.name}: ${message}`);
                 });
 
                 worker.on('error', (error) => {
