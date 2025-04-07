@@ -401,7 +401,7 @@ if (cluster.isMaster) {
     // 添加截圖功能的路由
     app.get('/screenshot', async (req, res) => {
         const { url } = req.query;
-        
+        console.log('url', url);
         if (!url) {
             return res.status(400).json({ error: '需要提供串流 URL' });
         }
