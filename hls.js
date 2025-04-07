@@ -385,6 +385,7 @@ if (cluster.isMaster) {
 } else {
     // 工作進程共享同一個 TCP 連接
     const app = express();
+    console.log('app', 'not master');
 
     // 設置靜態文件服務
     app.use(express.static(outputDir));
